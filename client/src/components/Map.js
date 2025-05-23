@@ -3,6 +3,8 @@ import { MapContainer, TileLayer, Polyline, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Box, Paper } from '@mui/material';
+import HeatmapLayer from './heatLayer';
+import axios from 'axios';
 
 // Fix for default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -14,6 +16,26 @@ L.Icon.Default.mergeOptions({
 
 const Map = ({ routes, selectedRoute, startPoint, endPoint, onMapClick }) => {
   const [map, setMap] = useState(null);
+  const [dangerZones, setDangerZones] = useState([]);
+
+  useEffect(() => {
+    axios.get('http://localhost:5000/api/danger-zones')
+      .then(res => {
+        const validPoints = res.data
+        .filter(zone =>
+          typeof zone.latitude === 'number' &&
+          typeof zone.longitude === 'number'
+        ).map(zone => [
+          zone.latitude,
+          zone.longitude,
+          zone.severity
+        ]);
+        setDangerZones(validPoints);
+      })
+      .catch(err => {
+        console.error('Failed to fetch danger zones:', err);
+      });
+  }, []);
 
   useEffect(() => {
     if (map && selectedRoute) {
@@ -43,6 +65,8 @@ const Map = ({ routes, selectedRoute, startPoint, endPoint, onMapClick }) => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        
+        <HeatmapLayer points={dangerZones} />
 
         {routes.map((route, index) => (
           <Polyline
