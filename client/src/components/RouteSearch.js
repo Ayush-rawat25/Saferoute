@@ -8,6 +8,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import axios from 'axios';
+import Map from './Map';
 
 const RouteSearch = ({ onRouteFound }) => {
   const [startLocation, setStartLocation] = useState('');
@@ -46,7 +47,6 @@ const RouteSearch = ({ onRouteFound }) => {
         start: startCoords,
         end: endCoords,
       });
-
       onRouteFound(
         response.data,
         [startCoords[1], startCoords[0]],

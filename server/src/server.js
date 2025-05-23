@@ -15,7 +15,10 @@ app.use(express.json());
 app.use('/api', routes);
 
 // MongoDB connection
-mongoose.connect(MONGODB_URI)
+mongoose.connect(MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
   .then(() => {
     console.log('Connected to MongoDB');
     app.listen(PORT, () => {

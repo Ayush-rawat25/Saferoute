@@ -12,18 +12,19 @@ L.Icon.Default.mergeOptions({
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
-const Map = ({ routes, selectedRoute, onRouteSelect, startPoint, endPoint, onMapClick }) => {
+const Map = ({ routes, selectedRoute, startPoint, endPoint, onMapClick }) => {
   const [map, setMap] = useState(null);
 
   useEffect(() => {
-    if (map && startPoint && endPoint) {
-      const bounds = L.latLngBounds([startPoint, endPoint]);
+    if (map && selectedRoute) {
+      const latLngs = selectedRoute.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+      const bounds = L.latLngBounds(latLngs);
       map.fitBounds(bounds, { padding: [50, 50] });
     }
-  }, [map, startPoint, endPoint]);
+  }, [map, selectedRoute]);
 
   const getRouteColor = (safetyScore) => {
-    if (safetyScore >= 80) return '#4CAF50';
+    if (safetyScore >= 80) return '#0D47A1';
     if (safetyScore >= 60) return '#FFC107';
     if (safetyScore >= 40) return '#FF9800';
     return '#F44336';
@@ -32,8 +33,8 @@ const Map = ({ routes, selectedRoute, onRouteSelect, startPoint, endPoint, onMap
   return (
     <Paper elevation={3} sx={{ height: '70vh', width: '100%' }}>
       <MapContainer
-        center={[20.5937, 78.9629]} // Center of India
-        zoom={5}
+        center={startPoint||[20.5937, 78.9629]}
+        zoom={10}
         style={{ height: '100%', width: '100%' }}
         whenCreated={setMap}
         onClick={onMapClick}
@@ -48,9 +49,9 @@ const Map = ({ routes, selectedRoute, onRouteSelect, startPoint, endPoint, onMap
             key={index}
             positions={route.geometry.coordinates.map(coord => [coord[1], coord[0]])}
             color={getRouteColor(route.properties.safetyScore)}
-            weight={selectedRoute === route ? 6 : 3}
-            opacity={selectedRoute === route ? 1 : 0.6}
-            onClick={() => onRouteSelect(route)}
+            weight={selectedRoute?.properties?.id === route.properties.id ? 6 : 3}
+            opacity={selectedRoute?.properties?.id === route.properties.id ? 1 : 0.6}
+            // onClick={() => onRouteSelect(route)}
           >
             <Popup>
               <Box>

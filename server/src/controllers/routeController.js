@@ -1,5 +1,5 @@
-const axios = require('axios');
-const Incident = require('../models/Incident');
+const axios = require("axios");
+const Incident = require("../models/Incident");
 
 // Distance threshold in meters for considering incidents near a route
 const INCIDENT_THRESHOLD = 100;
@@ -16,11 +16,11 @@ const calculateSafetyScore = (incidents) => {
   };
 
   const severityImpact = incidents.reduce((total, incident) => {
-    return total + (incident.severity * weights[incident.type]);
+    return total + incident.severity * weights[incident.type];
   }, 0);
 
   // Normalize score between 0 and 100
-  const score = Math.max(0, 100 - (severityImpact * 10));
+  const score = Math.max(0, 100 - severityImpact * 10);
   return Math.round(score * 10) / 10; // Round to 1 decimal place
 };
 
@@ -48,7 +48,8 @@ const findDangerZones = (incidents) => {
     center: zone.center,
     count: zone.incidents.length,
     severity: Math.round(
-      zone.incidents.reduce((sum, inc) => sum + inc.severity, 0) / zone.incidents.length
+      zone.incidents.reduce((sum, inc) => sum + inc.severity, 0) /
+        zone.incidents.length
     ),
   }));
 };
@@ -76,6 +77,19 @@ exports.calculateRoute = async (req, res) => {
   try {
     const { start, end } = req.body;
 
+    if (
+      !start ||
+      !end ||
+      !Array.isArray(start) ||
+      !Array.isArray(end) ||
+      start.length !== 2 ||
+      end.length !== 2
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Invalid start or end coordinates" });
+    }
+
     // Get route from OpenStreetMap (using OSRM)
     const routeResponse = await axios.get(
       `http://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${end[0]},${end[1]}?geometries=geojson`
@@ -84,24 +98,37 @@ exports.calculateRoute = async (req, res) => {
     const route = routeResponse.data.routes[0];
     const routeGeometry = route.geometry;
 
-    // Find incidents near the route
-    const incidents = await Incident.find({
-      location: {
-        $near: {
-          $geometry: {
-            type: 'LineString',
-            coordinates: routeGeometry.coordinates,
+    // Find incidents near each point along the route
+    const allIncidents = [];
+
+    for (const point of routeGeometry.coordinates) {
+      const nearbyIncidents = await Incident.find({
+        location: {
+          $near: {
+            $geometry: {
+              type: "Point",
+              coordinates: point,
+            },
+            $maxDistance: INCIDENT_THRESHOLD, // e.g., 100 meters
           },
-          $maxDistance: INCIDENT_THRESHOLD,
         },
-      },
+      });
+
+      allIncidents.push(...nearbyIncidents);
+    }
+
+    // Remove duplicates (based on _id)
+    const incidentsMap = new Map();
+    allIncidents.forEach((incident) => {
+      incidentsMap.set(incident._id.toString(), incident);
     });
+    const incidents = Array.from(incidentsMap.values());
 
     const safetyScore = calculateSafetyScore(incidents);
     const dangerZones = findDangerZones(incidents);
 
     res.json({
-      type: 'Feature',
+      type: "Feature",
       geometry: routeGeometry,
       properties: {
         distance: route.distance,
@@ -111,7 +138,7 @@ exports.calculateRoute = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Route calculation error:', error);
-    res.status(500).json({ error: 'Failed to calculate route' });
+    console.error("Route calculation error:", error);
+    res.status(500).json({ error: "Failed to calculate route" });
   }
-}; 
+};
