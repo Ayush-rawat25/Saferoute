@@ -11,12 +11,14 @@ function App() {
   const [routeData, setRouteData] = useState(null);
   const [startPoint, setStartPoint] = useState(null);
   const [endPoint, setEndPoint] = useState(null);
+  const [selectedRoute, setselectedRoute] = useState(null);
 
-  const handleRouteFound = (route, startLatLng, endLatLng) => {
-    setRouteData(route);
+  const handleRouteFound = (routes, startLatLng, endLatLng, bestRouteId) => {
+    setRouteData(routes);
     setStartPoint(startLatLng);
     setEndPoint(endLatLng);
-    console.log('Route data:', route);
+    const best = routes.find(r => r.id === bestRouteId);
+    setselectedRoute(best);
   };
   function onMapClick(event) {
     const clickedCoordinates = event.lngLat; // Or similar, depending on map library
@@ -31,7 +33,7 @@ function App() {
         onClose={() => setOpen(false)}
         location={location}/> */}
       <RouteSearch onRouteFound={handleRouteFound}/>
-      {routeData && <Map routes={[routeData]} responsedata={routeData} startPoint={startPoint} endPoint={endPoint} onMapClick={onMapClick}/>}
+      {routeData && <Map routes={routeData} selectedRoute={selectedRoute} startPoint={startPoint} endPoint={endPoint} onMapClick={onMapClick}/>}
     </>
   );
 }

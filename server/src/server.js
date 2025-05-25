@@ -30,6 +30,7 @@ mongoose.connect(MONGODB_URI, {
     process.exit(1);
   });
 
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

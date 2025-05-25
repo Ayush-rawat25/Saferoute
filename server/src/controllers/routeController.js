@@ -1,8 +1,7 @@
 const axios = require("axios");
 const Incident = require("../models/Incident");
 
-// Distance threshold in meters for considering incidents near a route
-const INCIDENT_THRESHOLD = 100;
+const INCIDENT_THRESHOLD = 100; // meters
 
 const calculateSafetyScore = (incidents) => {
   if (incidents.length === 0) return 100;
@@ -15,20 +14,30 @@ const calculateSafetyScore = (incidents) => {
     other: 0.1,
   };
 
-  const severityImpact = incidents.reduce((total, incident) => {
-    return total + incident.severity * weights[incident.type];
+  const grouped = {};
+
+  // Deduplicate spatially
+  incidents.forEach((incident) => {
+    const key = `${incident.location.coordinates[0].toFixed(4)}:${incident.location.coordinates[1].toFixed(4)}`;
+    grouped[key] = incident;
+  });
+
+  const uniqueIncidents = Object.values(grouped);
+
+  const severityImpact = uniqueIncidents.reduce((total, incident) => {
+    const weight = weights[incident.type] || 0.1;
+    return total + Math.min(5, incident.severity) * weight;
   }, 0);
 
-  // Normalize score between 0 and 100
-  const score = Math.max(0, 100 - severityImpact * 10);
-  return Math.round(score * 10) / 10; // Round to 1 decimal place
+  const cappedImpact = Math.min(severityImpact, 10); // limit extreme penalties
+  const score = Math.max(0, 100 - cappedImpact * 10);
+  return Math.round(score * 10) / 10;
 };
 
 const findDangerZones = (incidents) => {
   const zones = [];
   if (incidents.length === 0) return zones;
 
-  // Group nearby incidents
   incidents.forEach((incident) => {
     const existingZone = zones.find((zone) =>
       isNearby(zone.center, incident.location.coordinates)
@@ -55,22 +64,40 @@ const findDangerZones = (incidents) => {
 };
 
 const isNearby = (point1, point2) => {
-  // Simple distance check (can be improved with proper geodesic calculations)
   const [lon1, lat1] = point1;
   const [lon2, lat2] = point2;
-  const R = 6371e3; // Earth's radius in meters
+  const R = 6371e3;
   const φ1 = (lat1 * Math.PI) / 180;
   const φ2 = (lat2 * Math.PI) / 180;
   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
   const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
   const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    Math.sin(Δφ / 2) ** 2 +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const distance = R * c;
 
   return distance <= INCIDENT_THRESHOLD;
+};
+
+const generateDetourPoints = (start, end, count = 6, radius = 0.01) => {
+  const [lon1, lat1] = start;
+  const [lon2, lat2] = end;
+
+  const midLon = (lon1 + lon2) / 2;
+  const midLat = (lat1 + lat2) / 2;
+
+  const detours = [];
+
+  for (let i = 0; i < count; i++) {
+    const angle = (2 * Math.PI * i) / count;
+    const offsetLat = radius * Math.cos(angle);
+    const offsetLon = radius * Math.sin(angle);
+    detours.push([midLon + offsetLon, midLat + offsetLat]);
+  }
+
+  return detours;
 };
 
 exports.calculateRoute = async (req, res) => {
@@ -90,55 +117,109 @@ exports.calculateRoute = async (req, res) => {
         .json({ error: "Invalid start or end coordinates" });
     }
 
-    // Get route from OpenStreetMap (using OSRM)
-    const routeResponse = await axios.get(
-      `http://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${end[0]},${end[1]}?geometries=geojson`
+    // Fetch routes with alternatives
+    const detours = generateDetourPoints(start, end);
+    const routePromises = [];
+    
+    // Original direct route
+    routePromises.push(
+      axios.get(`http://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson`)
     );
+    
+    // Routes with detours
+    detours.forEach((via) => {
+      const url = `http://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${via[0]},${via[1]};${end[0]},${end[1]}?overview=full&geometries=geojson`;
+      routePromises.push(axios.get(url));
+    });
+    
+    const routeResponses = await Promise.allSettled(routePromises);
+    
+    const allRoutes = routeResponses
+      .filter(r => r.status === 'fulfilled')
+      .flatMap(r => r.value.data.routes);
+    
+    const evaluatedRoutes = [];
 
-    const route = routeResponse.data.routes[0];
-    const routeGeometry = route.geometry;
+    for (let i = 0; i < allRoutes.length; i++) {
+      const route = allRoutes[i];
+      const routeGeometry = route.geometry;
+      const allIncidents = [];
 
-    // Find incidents near each point along the route
-    const allIncidents = [];
-
-    for (const point of routeGeometry.coordinates) {
-      const nearbyIncidents = await Incident.find({
-        location: {
-          $near: {
-            $geometry: {
-              type: "Point",
-              coordinates: point,
+      for (const point of routeGeometry.coordinates) {
+        const nearbyIncidents = await Incident.find({
+          location: {
+            $near: {
+              $geometry: {
+                type: "Point",
+                coordinates: point,
+              },
+              $maxDistance: INCIDENT_THRESHOLD,
             },
-            $maxDistance: INCIDENT_THRESHOLD, // e.g., 100 meters
           },
+        });
+
+        allIncidents.push(...nearbyIncidents);
+      }
+
+      const incidentsMap = new Map();
+      allIncidents.forEach((incident) => {
+        incidentsMap.set(incident._id.toString(), incident);
+      });
+      const incidents = Array.from(incidentsMap.values());
+
+      const safetyScore = calculateSafetyScore(incidents);
+      const dangerZones = findDangerZones(incidents);
+
+      evaluatedRoutes.push({
+        id: i, // add id for identification
+        type: "Feature",
+        geometry: routeGeometry,
+        properties: {
+          distance: route.distance,
+          duration: route.duration,
+          safetyScore,
+          dangerZones,
         },
       });
-
-      allIncidents.push(...nearbyIncidents);
     }
 
-    // Remove duplicates (based on _id)
-    const incidentsMap = new Map();
-    allIncidents.forEach((incident) => {
-      incidentsMap.set(incident._id.toString(), incident);
+    // Normalize scores and calculate composite
+    const maxDistance = Math.max(...evaluatedRoutes.map(r => r.properties.distance));
+    const maxDuration = Math.max(...evaluatedRoutes.map(r => r.properties.duration));
+
+    evaluatedRoutes.forEach((route) => {
+      const safetyWeight = 0.7;
+      const distanceWeight = 0.15;
+      const durationWeight = 0.15;
+
+      const normalizedSafety = route.properties.safetyScore / 100;
+      const normalizedDistance = route.properties.distance / maxDistance;
+      const normalizedDuration = route.properties.duration / maxDuration;
+
+      const compositeScore =
+        safetyWeight * normalizedSafety +
+        distanceWeight * (1 - normalizedDistance) +
+        durationWeight * (1 - normalizedDuration);
+
+      route.properties.compositeScore = compositeScore;
     });
-    const incidents = Array.from(incidentsMap.values());
 
-    const safetyScore = calculateSafetyScore(incidents);
-    const dangerZones = findDangerZones(incidents);
+    // Find best route
+    const bestRoute = evaluatedRoutes.reduce((best, current) =>
+      current.properties.compositeScore > best.properties.compositeScore
+        ? current
+        : best
+    );
 
+    // Return all routes and best route id
     res.json({
-      type: "Feature",
-      geometry: routeGeometry,
-      properties: {
-        distance: route.distance,
-        duration: route.duration,
-        safetyScore,
-        dangerZones,
-      },
+      routes: evaluatedRoutes,
+      bestRouteId: bestRoute.id,
     });
+
   } catch (error) {
     console.error("Route calculation error:", error);
     res.status(500).json({ error: "Failed to calculate route" });
   }
 };
+
