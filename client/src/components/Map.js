@@ -11,6 +11,7 @@ import "leaflet/dist/leaflet.css";
 import { Box, Paper } from "@mui/material";
 import HeatmapLayer from "./heatLayer";
 import axios from "axios";
+import icon from "../assets/focus.png"
 
 // Fix leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -18,6 +19,13 @@ L.Icon.Default.mergeOptions({
   iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
   iconUrl: require("leaflet/dist/images/marker-icon.png"),
   shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
+});
+
+const userIcon = L.icon({
+  iconUrl: icon, 
+  iconSize: [25, 25], // Size of the icon
+  iconAnchor: [20, 40], // Point where the icon connects to the map
+  popupAnchor: [0, -40], // Where the popup appears relative to the icon
 });
 
 // Helper to get route id
@@ -61,13 +69,26 @@ const Map = ({
       map.fitBounds(bounds, { padding: [50, 50] });
     }
   }, [map, selectedRoute]);
+  
+  const [position, setPosition] = useState(null);
 
+  useEffect(() => {
+    navigator.geolocation.watchPosition(
+      (pos) => {
+        setPosition([pos.coords.latitude, pos.coords.longitude]);
+      },
+      (err) => {
+        console.error("Error getting location:", err);
+      }
+    );
+  }, []);
 
   const getRouteColor = (safetyScore) => {
     if (safetyScore >= 80) return "blue";
     if (safetyScore >= 50) return "orange";
     return "red";
   };
+  
 
   return (
     <Paper elevation={3} sx={{ height: "70vh", width: "100%" }}>
@@ -82,7 +103,11 @@ const Map = ({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-
+        {position && (
+        <Marker position={position} icon={userIcon}>
+          <Popup>You are here!</Popup>
+        </Marker>
+        )}
         <HeatmapLayer points={dangerZones} />
 
         {routes.map((route, index) => {

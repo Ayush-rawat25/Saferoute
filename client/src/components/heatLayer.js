@@ -17,8 +17,8 @@ const HeatmapLayer = ({ points = [] }) => {
       gradient: {
         0.1: 'blue',
         0.4: 'lime',
-        0.7: 'orange',
-        1.0: 'red',
+        0.7: 'yellow',
+        1.0: '#FB5D01',
       },
     }).addTo(map);
 
