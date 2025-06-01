@@ -35,9 +35,9 @@ const IncidentReport = ({ open, onClose, location }) => {
 
   const theme = useTheme();
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
     if (!location) return;
-
+    e.preventDefault();
     try {
       setSubmitting(true);
       setError(null);

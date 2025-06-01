@@ -12,6 +12,8 @@ import { Box, Paper } from "@mui/material";
 import HeatmapLayer from "./heatLayer";
 import axios from "axios";
 import icon from "../assets/focus.png"
+import IncidentReport from "./IncidentReport";
+import HelpButton from "./HelpButton";
 
 // Fix leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -40,6 +42,19 @@ const Map = ({
 }) => {
   const [map, setMap] = useState(null);
   const [dangerZones, setDangerZones] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState(null);
+
+  // Add event listener for incident report
+  useEffect(() => {
+    const handleIncidentReport = (event) => {
+      setOpen(true);
+    };
+    window.addEventListener('openIncidentReport', handleIncidentReport);
+    return () => {
+      window.removeEventListener('openIncidentReport', handleIncidentReport);
+    };
+  }, []);
 
   useEffect(() => {
     axios
@@ -70,8 +85,6 @@ const Map = ({
     }
   }, [map, selectedRoute]);
   
-  const [position, setPosition] = useState(null);
-
   useEffect(() => {
     navigator.geolocation.watchPosition(
       (pos) => {
@@ -91,6 +104,7 @@ const Map = ({
   
 
   return (
+    <>
     <Paper elevation={3} sx={{ height: "70vh", width: "100%" }}>
       <MapContainer
         center={startPoint || [20.5937, 78.9629]}
@@ -154,6 +168,11 @@ const Map = ({
         )}
       </MapContainer>
     </Paper>
+    <div className="fixed bottom-5 right-5 z-[9999]">
+      <HelpButton position={position} />
+    </div>
+    {open && <IncidentReport open={open} onClose={() => setOpen(false)} location={position}/>}
+    </>
   );
 };
 

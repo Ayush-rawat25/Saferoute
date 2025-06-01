@@ -18,21 +18,18 @@ const RouteSearch = ({ onRouteFound }) => {
   const geocodeLocation = async (location) => {
     try {
       const response = await axios.get(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          location
-        )}`
-      );
-      if (response.data.length === 0) {
-        throw new Error('Location not found');
-      }
+        `http://localhost:5000/api/geocode?` + new URLSearchParams({ q: location })
+      )
       return [
-        parseFloat(response.data[0].lon),
-        parseFloat(response.data[0].lat),
+        parseFloat(response.data.lon),
+        parseFloat(response.data.lat),
       ];
     } catch (error) {
+      console.error(error);
       throw new Error('Failed to geocode location');
     }
   };
+  
 
   const handleSearch = async () => {
     try {

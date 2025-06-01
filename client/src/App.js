@@ -1,13 +1,11 @@
 import './App.css';
 import { useState } from 'react';
-import IncidentReport from './components/IncidentReport.js';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Map from './components/Map.js';
 import RouteSearch from './components/RouteSearch.js';
+import LocationReceiver from './components/LocationReceiver';
 
-
-function App() {
-  const [open, setOpen] = useState(true); // Set to true to show dialog
-  const location = [0, 0]; // Dummy location [lng, lat]
+function HomePage() {
   const [routeData, setRouteData] = useState(null);
   const [startPoint, setStartPoint] = useState(null);
   const [endPoint, setEndPoint] = useState(null);
@@ -20,21 +18,36 @@ function App() {
     const best = routes.find(r => r.id === bestRouteId);
     setselectedRoute(best);
   };
-  function onMapClick(event) {
-    const clickedCoordinates = event.lngLat; // Or similar, depending on map library
-    setStartPoint(clickedCoordinates); // Set a new starting point
-    // Possibly recalculate routes based on the new point
-  }
-  
-  
+
+  const onMapClick = (event) => {
+    const clickedCoordinates = event.latlng || event.lngLat; // depends on library
+    setStartPoint(clickedCoordinates);
+  };
+
   return (
     <>
-      {/* <IncidentReport open={open}
-        onClose={() => setOpen(false)}
-        location={location}/> */}
-      <RouteSearch onRouteFound={handleRouteFound}/>
-      {routeData && <Map routes={routeData} selectedRoute={selectedRoute} startPoint={startPoint} endPoint={endPoint} onMapClick={onMapClick}/>}
+      <RouteSearch onRouteFound={handleRouteFound} />
+      {routeData && (
+        <Map
+          routes={routeData}
+          selectedRoute={selectedRoute}
+          startPoint={startPoint}
+          endPoint={endPoint}
+          onMapClick={onMapClick}
+        />
+      )}
     </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/location/:id" element={<LocationReceiver />} />
+      </Routes>
+    </Router>
   );
 }
 
