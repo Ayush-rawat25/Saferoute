@@ -10,8 +10,34 @@ const HelpButton = ({ position }) => {
   };
 
   const handleEmergencyCall = () => {
-    // You can customize this number based on your location/requirements
-    window.location.href = 'tel:112';
+      let sended = false;
+      setShowButtons(false);
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser");
+        return;
+      }
+  
+      navigator.geolocation.watchPosition(position => {
+        const { latitude, longitude } = position.coords;
+        if(!sended){
+          sended=true;
+          fetch('http://localhost:5000/api/send-help-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ latitude, longitude })
+          })
+          .then(res => res.json())
+          .then(data => {
+            alert("Help message sent successfully!");
+          })
+          .catch(err => {
+            alert("Failed to send help message.");
+            console.error(err);
+          });
+        }
+      }, () => {
+        alert("Unable to retrieve your location.");
+      });
   };
 
   return (
