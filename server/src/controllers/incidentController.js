@@ -1,4 +1,5 @@
 const Incident = require('../models/Incident');
+const reverseGeocode = require('../utils/reversegeocode');
 
 exports.createIncident = async (req, res) => {
   try {
@@ -15,12 +16,15 @@ exports.getIncidents = async (req, res) => {
   try {
     const { lat, lon, radius = 1000 } = req.query; // radius in meters
 
+    const name = await reverseGeocode(lat, lon);
+
     const query = lat && lon ? {
       location: {
         $near: {
           $geometry: {
             type: 'Point',
             coordinates: [parseFloat(lon), parseFloat(lat)],
+            name,
           },
           $maxDistance: parseInt(radius),
         },

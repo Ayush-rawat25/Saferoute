@@ -7,9 +7,84 @@ const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 const nodemailer = require('nodemailer');
 require('dotenv').config();
+const reverseGeocode = require('../utils/reversegeocode'); // adjust path as needed
 
 // Route endpoints
 router.post("/routes", routeController.calculateRoute);
+
+//Affected Zones
+router.post("/affected-zones", async (req, res) => {
+  const { routeCoords } = req.body;
+
+  if (!routeCoords || !Array.isArray(routeCoords)) {
+    return res.status(400).json({ error: "Invalid route coordinates" });
+  }
+
+  try {
+    const RADIUS = 200;
+    const incidentSet = new Set();
+
+    for (const point of routeCoords) {
+      const nearby = await Incident.find({
+        location: {
+          $near: {
+            $geometry: { type: "Point", coordinates: point },
+            $maxDistance: RADIUS,
+          },
+        },
+      });
+
+      nearby.forEach((inc) => incidentSet.add(inc._id.toString()));
+    }
+
+    const incidents = await Incident.find({ _id: { $in: Array.from(incidentSet) } });
+
+    // Clustering
+    const cache = {};
+    const uniqueMap = {};
+
+    for (const inc of incidents) {
+      const [lon, lat] = inc.location.coordinates;
+      const cacheKey = `${lat.toFixed(4)}_${lon.toFixed(4)}`;
+      let name;
+
+      if (cache[cacheKey]) {
+        name = cache[cacheKey];
+      } else {
+        name = await reverseGeocode(lat, lon);
+        cache[cacheKey] = name || "Unknown Area";
+      }
+
+      if (!uniqueMap[name]) {
+        uniqueMap[name] = {
+          latitude: lat,
+          longitude: lon,
+          severity: inc.severity,
+          name,
+          count: 1,
+        };
+      } else {
+        uniqueMap[name].severity += inc.severity;
+        uniqueMap[name].count++;
+      }
+    }
+
+    const clustered = Object.values(uniqueMap).map((loc) => ({
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+      name: loc.name,
+      severity: Math.round(loc.severity / loc.count),
+    }));
+
+    res.json(clustered);
+  } catch (err) {
+    console.error("Error finding affected zones:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+
 
 //GET DANGER ZONE
 router.get("/danger-zones", async (req, res) => {
@@ -26,6 +101,7 @@ router.get("/danger-zones", async (req, res) => {
       .map((incident) => ({
         latitude: incident.location.coordinates[1],
         longitude: incident.location.coordinates[0],
+        name: incident.location.name,
         severity: incident.severity || 3, // scale 1-5
       }));
     res.json(points);
@@ -152,7 +228,6 @@ router.post("/location/:id/stop", (req, res) => {
 
 router.post("/send-help-email", async (req, res) => {
   const { latitude, longitude } = req.body;
-
   if (!latitude || !longitude) {
     return res.status(400).json({ error: "Location missing" });
   }
@@ -172,10 +247,10 @@ router.post("/send-help-email", async (req, res) => {
     to: process.env.TO_EMAIL,
     subject: "🚨 SOS Alert from SafeRoute",
     text: `An anonymous user requested help.
-Location: https://www.google.com/maps?q=${latitude},${longitude}
-Latitude: ${latitude}
-Longitude: ${longitude}
-Time: ${new Date().toLocaleString()}`,
+          Location: https://www.google.com/maps?q=${latitude},${longitude}
+          Latitude: ${latitude}
+          Longitude: ${longitude}
+          Time: ${new Date().toLocaleString()}`,
   };
 
   try {

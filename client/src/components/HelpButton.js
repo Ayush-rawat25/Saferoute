@@ -17,28 +17,29 @@ const HelpButton = ({ position }) => {
         return;
       }
   
-      navigator.geolocation.watchPosition(position => {
-        const { latitude, longitude } = position.coords;
-        if(!sended){
-          sended=true;
-          fetch('http://localhost:5000/api/send-help-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ latitude, longitude })
-          })
-          .then(res => res.json())
-          .then(data => {
-            alert("Help message sent successfully!");
-          })
-          .catch(err => {
-            alert("Failed to send help message.");
-            console.error(err);
-          });
-        }
-      }, () => {
-        alert("Unable to retrieve your location.");
-      });
-  };
+      const  latitude = position[0];
+      const longitude = position[1];
+      if(!{ latitude, longitude }){
+        alert("Location not available yet. Try again in a moment.");
+        return;
+      }
+      if(!sended){
+        sended=true;
+        fetch('http://localhost:5000/api/send-help-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ latitude, longitude })
+        })
+        .then(res => res.json())
+        .then(data => {
+          alert("Help message sent successfully!");
+        })
+        .catch(err => {
+          alert("Failed to send help message.");
+          console.error(err);
+        });
+      }
+  }
 
   return (
     <div className="relative">

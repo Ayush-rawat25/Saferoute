@@ -1,3 +1,5 @@
+// models/Incident.js
+
 const mongoose = require('mongoose');
 
 const incidentSchema = new mongoose.Schema({
@@ -23,8 +25,12 @@ const incidentSchema = new mongoose.Schema({
       required: true,
     },
     coordinates: {
-      type: [Number],
+      type: [Number], // [longitude, latitude]
       required: true,
+    },
+    name: {
+      type: String,
+      default: '',
     },
   },
   reportedAt: {
@@ -37,7 +43,6 @@ const incidentSchema = new mongoose.Schema({
   },
 });
 
-// Create a 2dsphere index for geospatial queries
 incidentSchema.index({ location: '2dsphere' });
 
-module.exports = mongoose.model('Incident', incidentSchema); 
+module.exports = mongoose.model('Incident', incidentSchema);
