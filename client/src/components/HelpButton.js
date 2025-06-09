@@ -10,26 +10,26 @@ const HelpButton = ({ position }) => {
   };
 
   const handleEmergencyCall = () => {
-      let sended = false;
-      setShowButtons(false);
-      if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser");
-        return;
-      }
-  
-      const  latitude = position[0];
-      const longitude = position[1];
-      if(!{ latitude, longitude }){
-        alert("Location not available yet. Try again in a moment.");
-        return;
-      }
-      if(!sended){
-        sended=true;
-        fetch('http://localhost:5000/api/send-help-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ latitude, longitude })
-        })
+    let sended = false;
+    setShowButtons(false);
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+
+    const latitude = position[0];
+    const longitude = position[1];
+    if (!{ latitude, longitude }) {
+      alert("Location not available yet. Try again in a moment.");
+      return;
+    }
+    if (!sended) {
+      sended = true;
+      fetch('http://localhost:5000/api/send-help-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude, longitude })
+      })
         .then(res => res.json())
         .then(data => {
           alert("Help message sent successfully!");
@@ -38,20 +38,22 @@ const HelpButton = ({ position }) => {
           alert("Failed to send help message.");
           console.error(err);
         });
-      }
+    }
   }
 
   return (
     <div className="relative">
       {/* Main Help Button */}
-      <button 
+      <button
         onClick={() => setShowButtons(!showButtons)}
-        className="bg-red-600 hover:bg-red-700 text-white font-bold p-4 rounded-full shadow-lg transition duration-200 flex items-center space-x-2"
+        className="bg-blue-600 hover:bg-blue-700 text-white font-bold p-4 rounded-full shadow-lg transition duration-200 flex items-center space-x-2"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8a4 4 0 00-4 4h0a4 4 0 008 0c0-2.21-1.79-4-4-4zm0 0v2m0 4h.01M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
         </svg>
         <span>Help</span>
+
+
       </button>
 
       {/* Expandable Buttons */}
@@ -107,4 +109,3 @@ const HelpButton = ({ position }) => {
 
 export default HelpButton;
 
- 
