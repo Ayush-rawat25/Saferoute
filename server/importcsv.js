@@ -1,18 +1,16 @@
 const fs = require('fs');
 const csv = require('csv-parser');
 const mongoose = require('mongoose');
-const { parse, isValid } = require('date-fns');
+const { parseISO, isValid } = require('date-fns');
 const Incident = require('./src/models/Incident.js');
 require('./src/db'); // Connect to DB
 
 const results = [];
 
-fs.createReadStream('updated_crime_data.csv')
+fs.createReadStream('road_incidents_delhi_ncr_filtered.csv')
   .pipe(csv())
   .on('data', (data) => {
-    // Parse date in "dd-MM-yyyy HH:mm" format
-    const parsedDate = parse(data['reportedAt'], 'dd-MM-yyyy HH:mm', new Date());
-
+    const parsedDate = parseISO(data['reportedAt']);
     if (!isValid(parsedDate)) {
       console.warn(`Skipping row with invalid date: "${data['reportedAt']}"`);
       return;
@@ -24,11 +22,16 @@ fs.createReadStream('updated_crime_data.csv')
       severity: Number(data['severity']),
       location: {
         type: data['location.type'],
-        coordinates: JSON.parse(data['location.coordinates'].replace(/'/g, '"')),
+        coordinates: [
+          parseFloat(data['location.coordinates[0]']),
+          parseFloat(data['location.coordinates[1]']),
+        ],
+        name: data['location.name'] || '',
       },
       reportedAt: parsedDate,
       verified: data['verified'] === 'true',
     };
+
     results.push(incident);
   })
   .on('end', async () => {
