@@ -5,10 +5,10 @@ import {
   Button,
   Paper,
   Typography,
-  CircularProgress,
 } from "@mui/material";
 import axios from "axios";
 import HeatmapWarnings from "./Heatedpoints";
+import GlobeLoader from "./GlobeLoader";
 
 const RouteSearch = ({ onRouteFound }) => {
   const [startLocation, setStartLocation] = useState("");
@@ -151,7 +151,7 @@ const RouteSearch = ({ onRouteFound }) => {
             }}
           >
             {loading ? (
-              <CircularProgress size={24} color="inherit" />
+              <GlobeLoader/>
             ) : (
               "FIND SAFE ROUTE"
             )}
