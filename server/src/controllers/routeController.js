@@ -143,24 +143,30 @@ exports.calculateRoute = async (req, res) => {
     for (let i = 0; i < allRoutes.length; i++) {
       const route = allRoutes[i];
       const routeGeometry = route.geometry;
+      // Downsample route points for speed (every 10th point)
+      const downsampled = routeGeometry.coordinates.filter((_, idx) => idx % 10 === 0);
+      // Compute bounding box
+      const lats = routeGeometry.coordinates.map(c => c[1]);
+      const lngs = routeGeometry.coordinates.map(c => c[0]);
+      const minLat = Math.min(...lats) - 0.01;
+      const maxLat = Math.max(...lats) + 0.01;
+      const minLng = Math.min(...lngs) - 0.01;
+      const maxLng = Math.max(...lngs) + 0.01;
+      // Query all incidents in this box ONCE
+      const incidentsInBox = await Incident.find({
+        "location.coordinates.0": { $gte: minLng, $lte: maxLng },
+        "location.coordinates.1": { $gte: minLat, $lte: maxLat }
+      });
+      // For each downsampled route point, check distance to these incidents in-memory
       const allIncidents = [];
-
-      for (const point of routeGeometry.coordinates) {
-        const nearbyIncidents = await Incident.find({
-          location: {
-            $near: {
-              $geometry: {
-                type: "Point",
-                coordinates: point,
-              },
-              $maxDistance: INCIDENT_THRESHOLD,
-            },
-          },
-        });
-
-        allIncidents.push(...nearbyIncidents);
+      for (const point of downsampled) {
+        for (const inc of incidentsInBox) {
+          if (isNearby(point, inc.location.coordinates)) {
+            allIncidents.push(inc);
+          }
+        }
       }
-
+      // Remove duplicates
       const incidentsMap = new Map();
       allIncidents.forEach((incident) => {
         incidentsMap.set(incident._id.toString(), incident);
@@ -204,17 +210,12 @@ exports.calculateRoute = async (req, res) => {
       route.properties.compositeScore = compositeScore;
     });
 
-    // Find best route
-    const bestRoute = evaluatedRoutes.reduce((best, current) =>
-      current.properties.compositeScore > best.properties.compositeScore
-        ? current
-        : best
-    );
+    evaluatedRoutes.sort((a, b) => b.properties.compositeScore - a.properties.compositeScore);
 
     // Return all routes and best route id
     res.json({
       routes: evaluatedRoutes,
-      bestRouteId: bestRoute.id,
+      bestRouteId: evaluatedRoutes[0].id,
     });
 
   } catch (error) {

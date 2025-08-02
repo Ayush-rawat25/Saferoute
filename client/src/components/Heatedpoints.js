@@ -1,6 +1,5 @@
 import React from "react";
-import { CheckCircle, AlertTriangle } from "lucide-react";
-
+import { CheckCircle } from "lucide-react";
 // Utility to filter common locality names
 function getCommonLocalities(names = []) {
   const termCount = {};
@@ -35,6 +34,7 @@ function getCommonLocalities(names = []) {
     .sort((a, b) => b[1] - a[1])
     .map(([term]) => term.replace(/\b\w/g, (l) => l.toUpperCase()));
 }
+
 
 export default function HeatmapWarnings({ affectedAreas = [], safetyScore }) {
   const hasRoute =

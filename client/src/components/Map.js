@@ -9,7 +9,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Box, Paper } from "@mui/material";
+import { Paper } from "@mui/material";
 import HeatmapLayer from "./heatLayer";
 import axios from "axios";
 import icon from "../assets/focus.png";
@@ -66,12 +66,69 @@ const MapViewControl = ({ selectedRoute, startPoint, endPoint }) => {
   return null;
 };
 
+// Helper to check if a point is near any danger zone
+function isNearDangerZone(point, dangerZones, radius = 100) {
+  // radius in meters
+  return dangerZones.some((zone) => {
+    const dist = L.latLng(point).distanceTo([zone[0], zone[1]]);
+    return dist < radius;
+  });
+}
+
+// Split route into colored segments
+function getColoredSegments(routeCoords, dangerZones) {
+  let minDist = Infinity;
+  let closestPair = null;
+  let anyDanger = false;
+  const segments = [];
+
+  // Preprocess zones into Leaflet latLngs once
+  const dzLatLngs = dangerZones.map((zone) => L.latLng(zone[0], zone[1]));
+
+  for (let i = 0; i < routeCoords.length - 1; i++) {
+    const start = routeCoords[i];
+    const end = routeCoords[i + 1];
+    const startLatLng = L.latLng(start);
+    const endLatLng = L.latLng(end);
+
+    // Danger check with early escape
+    let isDanger = false;
+    for (const dz of dzLatLngs) {
+      const d1 = startLatLng.distanceTo(dz);
+      const d2 = endLatLng.distanceTo(dz);
+
+      if (d1 < minDist) {
+        minDist = d1;
+        closestPair = { route: start, dz: [dz.lat, dz.lng] };
+      }
+      if (d2 < minDist) {
+        minDist = d2;
+        closestPair = { route: end, dz: [dz.lat, dz.lng] };
+      }
+
+      if (d1 < 1000 || d2 < 1000) {
+        isDanger = true;
+        break; // Early break improves performance
+      }
+    }
+
+    if (isDanger) anyDanger = true;
+    segments.push({
+      coords: [start, end],
+      color: isDanger ? "red" : "blue",
+    });
+  }
+
+  return { segments, closestPair };
+}
+
 const Map = ({
   routes = [],
   selectedRoute,
   startPoint,
   endPoint,
   onMapClick,
+  bestRouteId,
 }) => {
   const [dangerZones, setDangerZones] = useState([]);
   const [open, setOpen] = useState(false);
@@ -113,12 +170,6 @@ const Map = ({
     );
   }, []);
 
-  const getRouteColor = (safetyScore) => {
-    if (safetyScore >= 80) return "blue";
-    if (safetyScore >= 50) return "orange";
-    return "red";
-  };
-
   return (
     <>
       <Paper elevation={3} sx={{ height: "70vh", width: "100%" }}>
@@ -150,37 +201,30 @@ const Map = ({
 
           {routes.map((route, index) => {
             const routeId = getRouteId(route, index);
-            const safetyScore = route.properties?.safetyScore ?? 0;
-
+            const isBest = bestRouteId === routeId;
             if (!route.geometry?.coordinates) return null;
 
-            const isSelected =
-              selectedRoute && getRouteId(selectedRoute) === routeId;
-
+            const routeCoords = route.geometry.coordinates.map((coord) => [
+              coord[1],
+              coord[0],
+            ]);
+            const { segments } = getColoredSegments(routeCoords, dangerZones);
             return (
-              <Polyline
-                key={`${routeId}-${safetyScore}`}
-                positions={route.geometry.coordinates.map((coord) => [
-                  coord[1],
-                  coord[0],
-                ])}
-                color={getRouteColor(safetyScore)}
-                weight={isSelected ? 6 : 3}
-                opacity={isSelected ? 1 : 0.5}
-              >
-                <Popup>
-                  <Box>
-                    <strong>Safety Score: {safetyScore.toFixed(1)}</strong>
-                    <br />
-                    {route.properties?.dangerZones?.length > 0 && (
-                      <span>
-                        Warning: {route.properties.dangerZones.length} danger
-                        zones
-                      </span>
-                    )}
-                  </Box>
-                </Popup>
-              </Polyline>
+              <React.Fragment key={routeId}>
+                {segments.map((seg, idx) => (
+                  <Polyline
+                    key={`${routeId}-seg-${idx}`}
+                    positions={seg.coords}
+                    pathOptions={{
+                      color: seg.color,                          
+                      weight: isBest ? 5 : 3,
+                      opacity: isBest ? 1 : 0.5,
+                      dashArray: isBest ? null : "6 8",         
+                    }}
+                    zIndex={isBest ? 1000 : 500}
+                  />
+                ))}
+              </React.Fragment>
             );
           })}
 
@@ -195,6 +239,17 @@ const Map = ({
               <Popup>Destination</Popup>
             </Marker>
           )}
+
+          <div className="absolute top-4 left-4 bg-white p-3 rounded shadow z-[9999]">
+            <div className="flex items-center mb-1">
+              <div className="w-6 h-2 bg-blue-500 mr-2 rounded"></div>
+              <span className="text-sm text-gray-700">Safe Route</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-6 h-2 bg-red-500 mr-2 rounded"></div>
+              <span className="text-sm text-gray-700">Danger Zone Segment</span>
+            </div>
+          </div>
         </MapContainer>
       </Paper>
 

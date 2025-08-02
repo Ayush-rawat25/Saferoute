@@ -21,9 +21,6 @@ function Navbar() {
             <Link to="/about" className="hover:text-blue-400 transition">
               About
             </Link>
-            <Link to="/feedback" className="hover:text-blue-400 transition">
-              Feedback
-            </Link>
           </nav>
         </div>
       </header>

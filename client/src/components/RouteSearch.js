@@ -50,14 +50,14 @@ const RouteSearch = ({ onRouteFound }) => {
 
       if (bestRoute) {
         // 👉 Only get danger zones for the selected (best) route
-        const dangerRes = await axios.post(
-          "http://localhost:5000/api/affected-zones",
-          {
-            routeCoords: bestRoute.geometry.coordinates,
-          }
-        );
+        // const dangerRes = await axios.post(
+        //   "http://localhost:5000/api/affected-zones",
+        //   {
+        //     routeCoords: bestRoute.geometry.coordinates,
+        //   }
+        // );
 
-        setAffectedAreas(dangerRes.data);
+        // setAffectedAreas(dangerRes.data);
 
         // Show the best route
         onRouteFound(
@@ -160,12 +160,12 @@ const RouteSearch = ({ onRouteFound }) => {
       </Paper>
 
       {/* 🔥 Show incident warnings */}
-      <div className="mb-6 mt-0">
+      {/* <div className="mb-6 mt-0">
         <HeatmapWarnings
           affectedAreas={affectedAreas}
           safetyScore={safetyScore}
         />
-      </div>
+      </div> */}
     </>
   );
 };

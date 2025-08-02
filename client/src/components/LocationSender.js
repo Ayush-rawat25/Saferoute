@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import L from "leaflet";
 
 const LocationSender = ({ onClose }) => {
   const [link, setLink] = useState('');
