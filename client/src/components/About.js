@@ -6,7 +6,7 @@ const AboutUs = () => {
     <section className="max-w-5xl mx-auto px-6 py-12 font-sans text-gray-800">
       {/* Hero Section */}
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-green-700">About SafeRoutes</h1>
+        <h1 className="text-4xl font-bold text-green-700">About SafeRoute</h1>
         <p className="mt-3 text-lg text-gray-600">
           Empowering safer journeys for everyone, everywhere.
         </p>
@@ -16,7 +16,7 @@ const AboutUs = () => {
       <div className="bg-green-50 rounded-lg shadow p-6 mb-10">
         <h2 className="text-2xl font-semibold text-green-800 mb-3">Our Mission</h2>
         <p>
-          At <span className="font-bold">SafeRoutes</span>, we believe that traveling from one point to another
+          At <span className="font-bold">SafeRoute</span>, we believe that traveling from one point to another
           should never come with fear or uncertainty. Our mission is to help people
           navigate their cities safely by providing intelligent, real-time routing solutions.
         </p>
@@ -51,10 +51,10 @@ const AboutUs = () => {
 
       {/* Why Section */}
       <div className="bg-green-50 rounded-lg shadow p-6">
-        <h2 className="text-2xl font-semibold text-green-800 mb-3">Why SafeRoutes?</h2>
+        <h2 className="text-2xl font-semibold text-green-800 mb-3">Why SafeRoute?</h2>
         <p>
           Whether walking home late at night, exploring a new city, or just wanting extra
-          security on your daily commute, <span className="font-bold">SafeRoutes</span> is your companion for
+          security on your daily commute, <span className="font-bold">SafeRoute</span> is your companion for
           safe and stress-free travel.
         </p>
       </div>
