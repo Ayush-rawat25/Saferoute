@@ -23,10 +23,7 @@ const LocationSender = ({ onClose }) => {
       setLoading(false);
       startLocationTracking(savedLocationId);
     } else {
-      // Only generate link if not already tracking
-      if (!locationIdRef.current) {
-        generateShareableLink();
-      }
+      generateShareableLink();
     }
 
     // Handle visibility change
@@ -73,7 +70,7 @@ const LocationSender = ({ onClose }) => {
       },
       {
         enableHighAccuracy: true,
-        timeout: 5000,
+        timeout: 10000, // Increased timeout for free tier
         maximumAge: 0
       }
     );
@@ -93,7 +90,9 @@ const LocationSender = ({ onClose }) => {
       }
     }
 
+    // Clear all state and localStorage
     localStorage.removeItem('activeLocationShare');
+    locationIdRef.current = null;
     setIsTracking(false);
     setMinimized(false);
     setShowLinkModal(false);
@@ -108,30 +107,38 @@ const LocationSender = ({ onClose }) => {
     try {
       if (!navigator.geolocation) {
         setError('Geolocation is not supported by your browser');
+        setLoading(false);
         return;
       }
 
       navigator.geolocation.getCurrentPosition(async (position) => {
         const { latitude, longitude } = position.coords;
         
-        const response = await axios.post('https://saferoute-backend-qkyc.onrender.com/api/location/share', {
-          latitude,
-          longitude
-        });
+        try {
+          const response = await axios.post('https://saferoute-backend-qkyc.onrender.com/api/location/share', {
+            latitude,
+            longitude
+          }, {
+            timeout: 15000 // Increased timeout for free tier cold starts
+          });
 
-        // Use current domain instead of hardcoded localhost
-        const shareableLink = `${window.location.origin}/location/${response.data.id}`;
-        setLink(shareableLink);
-        setError('');
-        setLoading(false);
-        setShowLinkModal(true);
-        startLocationTracking(response.data.id);
-      }, () => {
+          const shareableLink = `${window.location.origin}/location/${response.data.id}`;
+          setLink(shareableLink);
+          setError('');
+          setLoading(false);
+          setShowLinkModal(true);
+          startLocationTracking(response.data.id);
+        } catch (err) {
+          setError('Error generating link. Please try again.');
+          setLoading(false);
+          console.error(err);
+        }
+      }, (err) => {
         setError('Unable to retrieve your location');
         setLoading(false);
       }, {
         enableHighAccuracy: true,
-        timeout: 5000,
+        timeout: 10000, // Increased timeout for free tier
         maximumAge: 0
       });
     } catch (err) {
@@ -144,13 +151,10 @@ const LocationSender = ({ onClose }) => {
   const handleClose = () => {
     if (watchIdRef.current) {
       navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
     }
     localStorage.removeItem('activeLocationShare');
     setShowLinkModal(false);
     setMinimized(false);
-    setLink('');
-    setError('');
     onClose();
   };
 
@@ -162,23 +166,6 @@ const LocationSender = ({ onClose }) => {
   const handleMaximize = () => {
     setShowLinkModal(true);
     setMinimized(false);
-  };
-
-  const resetLocationSharing = () => {
-    if (watchIdRef.current) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
-    localStorage.removeItem('activeLocationShare');
-    locationIdRef.current = null;
-    setIsTracking(false);
-    setMinimized(false);
-    setShowLinkModal(false);
-    setLink('');
-    setError('');
-    setLoading(true);
-    // Start fresh
-    generateShareableLink();
   };
 
   if (minimized && isTracking) {
@@ -283,16 +270,10 @@ const LocationSender = ({ onClose }) => {
               Stop Sharing
             </button>
             <button
-              onClick={resetLocationSharing}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-200"
-            >
-              Reset
-            </button>
-            <button
               onClick={handleClose}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200"
             >
-              Close
+              Minimize
             </button>
           </div>
         </div>
