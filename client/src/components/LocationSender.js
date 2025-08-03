@@ -23,7 +23,10 @@ const LocationSender = ({ onClose }) => {
       setLoading(false);
       startLocationTracking(savedLocationId);
     } else {
-      generateShareableLink();
+      // Only generate link if not already tracking
+      if (!locationIdRef.current) {
+        generateShareableLink();
+      }
     }
 
     // Handle visibility change
@@ -93,7 +96,10 @@ const LocationSender = ({ onClose }) => {
     localStorage.removeItem('activeLocationShare');
     setIsTracking(false);
     setMinimized(false);
-    handleClose();
+    setShowLinkModal(false);
+    setLink('');
+    setError('');
+    onClose();
   };
 
   const generateShareableLink = async () => {
@@ -113,6 +119,7 @@ const LocationSender = ({ onClose }) => {
           longitude
         });
 
+        // Use current domain instead of hardcoded localhost
         const shareableLink = `${window.location.origin}/location/${response.data.id}`;
         setLink(shareableLink);
         setError('');
@@ -137,10 +144,13 @@ const LocationSender = ({ onClose }) => {
   const handleClose = () => {
     if (watchIdRef.current) {
       navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
     }
     localStorage.removeItem('activeLocationShare');
     setShowLinkModal(false);
-    setMinimized(true);
+    setMinimized(false);
+    setLink('');
+    setError('');
     onClose();
   };
 
@@ -152,6 +162,23 @@ const LocationSender = ({ onClose }) => {
   const handleMaximize = () => {
     setShowLinkModal(true);
     setMinimized(false);
+  };
+
+  const resetLocationSharing = () => {
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    localStorage.removeItem('activeLocationShare');
+    locationIdRef.current = null;
+    setIsTracking(false);
+    setMinimized(false);
+    setShowLinkModal(false);
+    setLink('');
+    setError('');
+    setLoading(true);
+    // Start fresh
+    generateShareableLink();
   };
 
   if (minimized && isTracking) {
@@ -256,10 +283,16 @@ const LocationSender = ({ onClose }) => {
               Stop Sharing
             </button>
             <button
-              onClick={handleMinimize}
+              onClick={resetLocationSharing}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-200"
+            >
+              Reset
+            </button>
+            <button
+              onClick={handleClose}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200"
             >
-              Minimize
+              Close
             </button>
           </div>
         </div>
