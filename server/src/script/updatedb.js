@@ -1,10 +1,10 @@
 // scripts/updateIncidentNames.js
-
+require('dotenv').config();
 const mongoose = require('mongoose');
 const Incident = require('../models/Incident');
 const reverseGeocode = require('../utils/reversegeocode');
 
-const MONGO_URI = 'mongodb://localhost:27017/saferoute'; // Replace if different
+const MONGO_URI = process.env.MONGODB_URI; // Replace if different
 
 async function updateIncidentNames() {
   await mongoose.connect(MONGO_URI);

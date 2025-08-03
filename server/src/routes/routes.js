@@ -4,10 +4,11 @@ const router = express.Router();
 const routeController = require("../controllers/routeController");
 const incidentController = require("../controllers/incidentController");
 const axios = require("axios");
-const { v4: uuidv4 } = require("uuid");
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 const reverseGeocode = require('../utils/reversegeocode'); // adjust path as needed
+const { v4: uuidv4 } = require('uuid');
+const Location = require('../models/Location');
 
 // Route endpoints
 router.post("/routes", routeController.calculateRoute);
