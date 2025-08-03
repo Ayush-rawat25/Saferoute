@@ -147,83 +147,67 @@ router.get("/geocode", async (req, res) => {
 router.post("/incidents", incidentController.createIncident);
 router.get("/incidents", incidentController.getIncidents);
 
-// Location sharing endpoints
-const sharedLocations = new Map(); // In-memory store for shared locations
-const locationUpdateIntervals = new Map(); // Store for update intervals
 
-router.post("/location/share", (req, res) => {
-  const { latitude, longitude } = req.body;
-  const id = uuidv4();
+router.post("/location/share", async (req, res) => {
+  try {
+    const { latitude, longitude } = req.body;
+    const newLocation = await Location.create({ latitude, longitude, isLive: true });
+    res.json({ id: newLocation._id });
+  } catch (error) {
+    console.error("Error sharing location:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
-  sharedLocations.set(id, {
-    latitude,
-    longitude,
-    timestamp: Date.now(),
-    isLive: true,
-  });
-
-  // Set expiration for shared location (24 hours)
-  setTimeout(() => {
-    sharedLocations.delete(id);
-    const interval = locationUpdateIntervals.get(id);
-    if (interval) {
-      clearInterval(interval);
-      locationUpdateIntervals.delete(id);
+// Update live location
+router.post("/location/:id/update", async (req, res) => {
+  try {
+    const { latitude, longitude } = req.body;
+    const updatedLocation = await Location.findByIdAndUpdate(
+      req.params.id,
+      { latitude, longitude, timestamp: Date.now(), isLive: true },
+      { new: true }
+    );
+    if (!updatedLocation) {
+      return res.status(404).json({ error: "Location not found" });
     }
-  }, 24 * 60 * 60 * 1000);
-
-  res.json({ id });
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error updating location:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
-router.post("/location/:id/update", (req, res) => {
-  const { id } = req.params;
-  const { latitude, longitude } = req.body;
-
-  if (!sharedLocations.has(id)) {
-    return res.status(404).json({ error: "Location not found" });
+// Get location
+router.get("/location/:id", async (req, res) => {
+  try {
+    const location = await Location.findById(req.params.id);
+    if (!location) {
+      return res.status(404).json({ error: "Location not found" });
+    }
+    res.json(location);
+  } catch (error) {
+    console.error("Error fetching location:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  sharedLocations.set(id, {
-    latitude,
-    longitude,
-    timestamp: Date.now(),
-    isLive: true,
-  });
-
-  res.json({ success: true });
 });
 
-router.get("/location/:id", (req, res) => {
-  const { id } = req.params;
-  const location = sharedLocations.get(id);
-
-  if (!location) {
-    return res.status(404).json({ error: "Location not found" });
+// Stop sharing
+router.post("/location/:id/stop", async (req, res) => {
+  try {
+    const stoppedLocation = await Location.findByIdAndUpdate(
+      req.params.id,
+      { isLive: false },
+      { new: true }
+    );
+    if (!stoppedLocation) {
+      return res.status(404).json({ error: "Location not found" });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error stopping location:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  res.json(location);
-});
-
-router.post("/location/:id/stop", (req, res) => {
-  const { id } = req.params;
-
-  if (!sharedLocations.has(id)) {
-    return res.status(404).json({ error: "Location not found" });
-  }
-
-  // Update the location to mark it as not live
-  const location = sharedLocations.get(id);
-  location.isLive = false;
-  sharedLocations.set(id, location);
-
-  // Clear any existing update interval
-  const interval = locationUpdateIntervals.get(id);
-  if (interval) {
-    clearInterval(interval);
-    locationUpdateIntervals.delete(id);
-  }
-
-  res.json({ success: true });
 });
 
 router.post("/send-help-email", async (req, res) => {
