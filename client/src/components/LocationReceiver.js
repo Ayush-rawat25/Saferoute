@@ -27,7 +27,7 @@ const LocationReceiver = () => {
     const fetchLocation = async () => {
       console.log('Fetching location for id:', id);
       try {
-        const response = await axios.get(`https://saferoute-backend-qkyc.onrender.com/api/location/${id}`);
+        const response = await axios.get(`/api/location/${id}`);
         console.log('Location response:', response.data);
         setLocation(response.data);
         setError('');
