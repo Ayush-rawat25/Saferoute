@@ -10,13 +10,23 @@ const MONGODB_URI = process.env.MONGODB_URI;
 
 // CORS configuration
 app.use(cors({
-  origin: ['https://saferoute-frontend.onrender.com', 'http://localhost:3000'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
+  origin: true, // Allow all origins for now
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Middleware
 app.use(express.json());
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - Origin: ${req.headers.origin}`);
+  next();
+});
+
+// Handle OPTIONS preflight requests
+app.options('*', cors());
 
 // Routes
 app.use('/api', routes);
