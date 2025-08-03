@@ -9,6 +9,7 @@ require('dotenv').config();
 const reverseGeocode = require('../utils/reversegeocode'); // adjust path as needed
 const { v4: uuidv4 } = require('uuid');
 const Location = require('../models/Location');
+const path = require("path");
 
 // Route endpoints
 router.post("/routes", routeController.calculateRoute);
@@ -246,5 +247,14 @@ router.post("/send-help-email", async (req, res) => {
     res.status(500).json({ error: "Failed to send email" });
   }
 });
+
+
+// Serve React app for all other routes
+router.use(express.static(path.join(__dirname, '../client/build')));
+
+router.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+});
+
 
 module.exports = router;
