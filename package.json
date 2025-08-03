@@ -6,8 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "install-client": "npm install --prefix client",
-    "build-client": "npm run build --prefix client",
+    "build": "cd ../client && npm install && npm run build",
     "render-build": "npm run build"
   },
   "keywords": [],
