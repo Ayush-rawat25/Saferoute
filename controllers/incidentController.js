@@ -1,4 +1,4 @@
-const Incident = require('../models/Incident');
+const Incident = require('../../../models/Incident');
 const reverseGeocode = require('../utils/reversegeocode');
 
 exports.createIncident = async (req, res) => {

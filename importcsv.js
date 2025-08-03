@@ -3,7 +3,7 @@ const csv = require('csv-parser');
 const mongoose = require('mongoose');
 const { parseISO, isValid } = require('date-fns');
 const Incident = require('./src/models/Incident.js');
-require('./src/db'); // Connect to DB
+require('./db.js'); // Connect to DB
 
 const results = [];
 

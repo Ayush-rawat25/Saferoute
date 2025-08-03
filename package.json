@@ -1,6 +1,33 @@
 {
+  "name": "saferoute-server",
+  "version": "1.0.0",
+  "description": "SafeRoute application server",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "install-client": "npm install --prefix client",
+    "build-client": "npm run build --prefix client",
+    "heroku-postbuild": "npm run install-client && npm run build-client"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
   "dependencies": {
+    "axios": "^1.6.2",
+    "cors": "^2.8.5",
+    "csv-parser": "^3.2.0",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
-    "nodemailer": "^7.0.3"
+    "express": "^4.18.2",
+    "ml-kmeans": "^6.0.0",
+    "mongoose": "^8.0.1",
+    "nodemailer": "^7.0.5",
+    "socket.io": "^4.8.1",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
