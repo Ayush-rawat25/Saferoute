@@ -48,6 +48,7 @@ function HomePage() {
 }
 
 function App() {
+  console.log('App component rendered');
   return (
     <>
       <Router>

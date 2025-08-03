@@ -8,14 +8,14 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
+// CORS configuration
 app.use(cors({
-  origin: 'https://saferoute-fronted.onrender.com',
+  origin: ['https://saferoute-frontend.onrender.com', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
 
 // Middleware
-app.use(cors());
 app.use(express.json());
 
 // Routes

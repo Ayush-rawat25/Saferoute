@@ -21,10 +21,14 @@ const LocationReceiver = () => {
   const mapRef = useRef(null);
   const updateIntervalRef = useRef(null);
 
+  console.log('LocationReceiver mounted with id:', id);
+
   useEffect(() => {
     const fetchLocation = async () => {
+      console.log('Fetching location for id:', id);
       try {
         const response = await axios.get(`https://saferoute-backend-qkyc.onrender.com/api/location/${id}`);
+        console.log('Location response:', response.data);
         setLocation(response.data);
         setError('');
         
@@ -36,8 +40,8 @@ const LocationReceiver = () => {
           );
         }
       } catch (err) {
+        console.error('Error fetching location:', err);
         setError('Error fetching location. The link might be expired or invalid.');
-        console.error(err);
       } finally {
         setLoading(false);
       }
