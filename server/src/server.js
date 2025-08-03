@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 const routes = require('./routes/routes');
 require('dotenv').config();
 
@@ -10,7 +11,7 @@ const MONGODB_URI = process.env.MONGODB_URI;
 
 // CORS configuration
 app.use(cors({
-  origin: true, // Allow all origins for now
+  origin: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -19,7 +20,7 @@ app.use(cors({
 // Middleware
 app.use(express.json());
 
-// Request logging middleware
+// Request logging
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path} - Origin: ${req.headers.origin}`);
   next();
@@ -28,14 +29,16 @@ app.use((req, res, next) => {
 // Handle OPTIONS preflight requests
 app.options('*', cors());
 
-// Routes
+// API routes
 app.use('/api', routes);
 
-const path = require('path');
-app.use(express.static(path.join(__dirname, 'client', 'build')));
+// ✅ Serve static files from React frontend
+const clientBuildPath = path.join(__dirname, 'client', 'build');
+app.use(express.static(clientBuildPath));
 
+// ✅ Catch-all handler to send index.html for any non-API route
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
 
 // MongoDB connection
@@ -54,9 +57,8 @@ mongoose.connect(MONGODB_URI, {
     process.exit(1);
   });
 
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
-}); 
+});
