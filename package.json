@@ -8,7 +8,7 @@
     "dev": "nodemon src/server.js",
     "install-client": "npm install --prefix client",
     "build-client": "npm run build --prefix client",
-    "heroku-postbuild": "npm run install-client && npm run build-client"
+    "render-build": "npm run build"
   },
   "keywords": [],
   "author": "",
