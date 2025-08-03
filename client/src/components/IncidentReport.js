@@ -42,7 +42,7 @@ const IncidentReport = ({ open, onClose, location }) => {
       setSubmitting(true);
       setError(null);
 
-      await axios.post('http://localhost:5000/api/incidents', {
+      await axios.post('https://saferoute-backend-qkyc.onrender.com/api/incidents', {
         type,
         description,
         severity,

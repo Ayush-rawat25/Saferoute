@@ -25,7 +25,7 @@ const HelpButton = ({ position }) => {
     }
     if (!sended) {
       sended = true;
-      fetch('http://localhost:5000/api/send-help-email', {
+      fetch('https://saferoute-backend-qkyc.onrender.com/api/send-help-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ latitude, longitude })

@@ -55,7 +55,7 @@ const LocationSender = ({ onClose }) => {
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          await axios.post(`http://localhost:5000/api/location/${locationId}/update`, {
+          await axios.post(`https://saferoute-backend-qkyc.onrender.com/api/location/${locationId}/update`, {
             latitude,
             longitude
           });
@@ -84,7 +84,7 @@ const LocationSender = ({ onClose }) => {
     
     if (locationIdRef.current) {
       try {
-        await axios.post(`http://localhost:5000/api/location/${locationIdRef.current}/stop`);
+        await axios.post(`https://saferoute-backend-qkyc.onrender.com/api/location/${locationIdRef.current}/stop`);
       } catch (err) {
         console.error('Error stopping location share:', err);
       }
@@ -108,7 +108,7 @@ const LocationSender = ({ onClose }) => {
       navigator.geolocation.getCurrentPosition(async (position) => {
         const { latitude, longitude } = position.coords;
         
-        const response = await axios.post('http://localhost:5000/api/location/share', {
+        const response = await axios.post('https://saferoute-backend-qkyc.onrender.com/api/location/share', {
           latitude,
           longitude
         });

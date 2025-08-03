@@ -21,7 +21,7 @@ const RouteSearch = ({ onRouteFound }) => {
   const geocodeLocation = async (location) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/geocode?` +
+        `https://saferoute-backend-qkyc.onrender.com/api/geocode?` +
           new URLSearchParams({ q: location })
       );
       return [parseFloat(response.data.lon), parseFloat(response.data.lat)];
@@ -39,7 +39,7 @@ const RouteSearch = ({ onRouteFound }) => {
       const startCoords = await geocodeLocation(startLocation);
       const endCoords = await geocodeLocation(endLocation);
 
-      const response = await axios.post("http://localhost:5000/api/routes", {
+      const response = await axios.post("https://saferoute-backend-qkyc.onrender.com/api/routes", {
         start: startCoords,
         end: endCoords,
       });
@@ -51,7 +51,7 @@ const RouteSearch = ({ onRouteFound }) => {
       if (bestRoute) {
         // 👉 Only get danger zones for the selected (best) route
         // const dangerRes = await axios.post(
-        //   "http://localhost:5000/api/affected-zones",
+        //   "https://saferoute-backend-qkyc.onrender.com/api/affected-zones",
         //   {
         //     routeCoords: bestRoute.geometry.coordinates,
         //   }

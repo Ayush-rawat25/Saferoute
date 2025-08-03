@@ -143,7 +143,7 @@ const Map = ({
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/danger-zones")
+      .get("https://saferoute-backend-qkyc.onrender.com/api/danger-zones")
       .then((res) => {
         const validPoints = res.data
           .filter(

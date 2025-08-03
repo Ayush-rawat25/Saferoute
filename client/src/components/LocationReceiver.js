@@ -24,7 +24,7 @@ const LocationReceiver = () => {
   useEffect(() => {
     const fetchLocation = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/location/${id}`);
+        const response = await axios.get(`https://saferoute-backend-qkyc.onrender.com/api/location/${id}`);
         setLocation(response.data);
         setError('');
         
